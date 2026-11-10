@@ -1,0 +1,12 @@
+# Dependencias del proyecto HolaMundo02: Autenticación, Consulta SQL, CRUD y Diagrama ER
+# Conector a bases de datos MySQL / MariaDB
+PyMySQL>=1.0.0
+
+# Enlace de Python con GTK4 y WebKit6 (GUI nativa de escritorio)
+PyGObject>=3.42.0
+
+# Nota sobre dependencias del sistema en Linux:
+# El módulo WebKitGTK 6.0 y GTK 4 deben estar instalados a nivel de sistema operativo:
+# - Arch Linux / Manjaro: sudo pacman -S gtk4 webkitgtk-6.0 python-gobject
+# - Ubuntu / Debian: sudo apt-get install python3-gi libgtk-4-dev libwebkitgtk-6.0-dev
+# - Fedora: sudo dnf install gtk4 webkit2gtk4.1 python3-gobject

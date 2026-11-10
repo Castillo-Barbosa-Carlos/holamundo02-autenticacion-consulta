@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HolaMundo02 - Autenticación y Consulta SQL</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- App Header / Navbar -->
+  <header class="app-navbar">
+    <div class="brand-section">
+      <span class="brand-badge">HOLA MUNDO 02</span>
+      <h1 class="brand-title">Gestor SQL & Diagrama ER</h1>
+    </div>
+
+    <nav class="nav-tabs">
+      <button class="nav-tab active" id="tabBtnQuery" onclick="switchView('query')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16m-7 6h7"/></svg>
+        Consulta y Registros
+      </button>
+      <button class="nav-tab" id="tabBtnER" onclick="switchView('er')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="8.5" y="14" width="7" height="7"/><path d="M6.5 10v4h2M17.5 10v4h-2"/></svg>
+        Diagrama ER Automático
+      </button>
+      <button class="nav-tab" id="tabBtnCrud" onclick="switchView('crud')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Operaciones CRUD
+      </button>
+    </nav>
+
+    <div class="navbar-actions">
+      <div class="user-status">
+        <span class="status-indicator"></span>
+        <span id="activeUserLabel">Conectado: admin (empresa)</span>
+        <button class="btn-disconnect" onclick="openAuthModal()">Desconectar</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container">
+
+    <!-- VIEW 1: Query & Table View (Matching picture-2.png) -->
+    <section id="viewQuery" class="view-content active">
+      <div class="query-toolbar">
+        <div class="query-editor-row">
+          <div class="query-editor-card" id="queryEditorCard">
+            <div class="query-editor-top">
+              <span class="query-prompt">SQL&gt;</span>
+              <div class="sql-editor-container">
+                <div class="sql-line-numbers" id="sqlLineNumbers">1</div>
+                <div class="sql-code-area">
+                  <pre class="sql-highlight-layer" aria-hidden="true"><code id="sqlHighlightedCode"></code></pre>
+                  <textarea id="sqlInput" class="query-input sql-textarea" rows="1" spellcheck="false" placeholder="Escriba su consulta SQL aquí...">SELECT * FROM TRABAJADOR;</textarea>
+                </div>
+              </div>
+            </div>
+            <div class="syntax-status-bar" id="syntaxStatusBar">
+              <span class="syntax-status-badge valid" id="syntaxStatusBadge">
+                <span class="syntax-dot"></span>
+                <span id="syntaxStatusText">Sintaxis SQL válida</span>
+              </span>
+              <span class="syntax-shortcut-hint"><kbd>Ctrl</kbd> + <kbd>↵</kbd> Ejecutar</span>
+            </div>
+          </div>
+
+          <button class="btn-run" onclick="runQueryFromInput()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 9-14 9V3z"/></svg>
+            Ejecutar Consulta
+          </button>
+        </div>
+
+        <div class="query-actions-row">
+          <span class="quick-tables-label">Tablas:</span>
+          <div class="quick-tables-container" id="queryTablesContainer">
+            <div class="quick-tables-group" id="queryQuickTables">
+              <button class="quick-table-btn active" onclick="loadTableData('TRABAJADOR')">TRABAJADOR</button>
+              <button class="quick-table-btn" onclick="loadTableData('EDIFICIO')">EDIFICIO</button>
+              <button class="quick-table-btn" onclick="loadTableData('ASIGNACION')">ASIGNACION</button>
+            </div>
+            <button class="tables-expand-btn" id="queryTablesToggle" onclick="toggleTablesExpand('query')" style="display: none;">
+              <span class="expand-label">+ Más</span>
+              <svg class="expand-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+          </div>
+
+          <button class="btn-new-record" onclick="openCrudModal('create', currentTable)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Nuevo Registro
+          </button>
+        </div>
+      </div>
+
+      <!-- Table Card Exactly as in picture-2.png -->
+      <div class="table-card">
+        <div class="table-card-header">
+          <!-- Cylinder Database SVG Icon -->
+          <svg class="table-icon-svg" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 3.79 2 6v12c0 2.21 4.48 4 10 4s10-1.79 10-4V6c0-2.21-4.48-4-10-4zm0 2c4.42 0 8 1.34 8 2s-3.58 2-8 2-8-1.34-8-2 3.58-2 8-2zm8 6c0 .66-3.58 2-8 2s-8-1.34-8-2V8.41C5.64 9.38 8.65 10 12 10s6.36-.62 8-1.59V10zm0 6c0 .66-3.58 2-8 2s-8-1.34-8-2v-1.59c1.64.97 4.65 1.59 8 1.59s6.36-.62 8-1.59V16z"/>
+          </svg>
+          <span class="table-card-title" id="tableTitleDisplay">Tabla: TRABAJADOR</span>
+        </div>
+
+        <div class="data-table-container">
+          <table class="data-table" id="mainDataTable">
+            <thead id="tableHead">
+              <!-- Dynamically populated, defaults to picture-2 columns -->
+              <tr>
+                <th>IDTRABAJADOR</th>
+                <th>NOMBRE</th>
+                <th>TARIFAHR</th>
+                <th>OFICIO</th>
+                <th>TELEFONO</th>
+                <th>IDSUPV</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: ER Diagram View (Matching picture-1.png with Pan, Zoom & Table Editor Sidebar) -->
+    <section id="viewER" class="view-content">
+      <div class="er-layout">
+        <!-- Collapsible Left Sidebar for Table, Column Management & Integrated SQL Code -->
+        <aside class="er-sidebar collapsed" id="erSidebar">
+          <div class="er-sidebar-header">
+            <div class="er-sidebar-title-group">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+              <span class="er-sidebar-title" id="erSidebarHeaderTitle">Esquema ER</span>
+            </div>
+            <button class="er-sidebar-close-btn" onclick="toggleErSidebar()" title="Cerrar panel">✕</button>
+          </div>
+
+          <!-- Sidebar Tabs Navigation (Tablas vs Código SQL) -->
+          <div class="er-sidebar-nav-tabs">
+            <button type="button" class="er-sidebar-tab-btn active" id="tabBtnSidebarTables" onclick="switchSidebarTab('tables')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+              <span>Tablas</span>
+              <span class="er-tables-count-badge" id="erSidebarTablesCount">3</span>
+            </button>
+            <button type="button" class="er-sidebar-tab-btn" id="tabBtnSidebarCode" onclick="switchSidebarTab('code')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              <span>Código SQL</span>
+            </button>
+          </div>
+
+          <!-- PANE 1: Tables List and Column Editor -->
+          <div class="er-sidebar-tab-pane active" id="paneSidebarTables">
+            <div class="er-sidebar-actions">
+              <button class="btn-add-table" onclick="addNewTableToSchema()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Nueva Tabla
+              </button>
+              <div class="er-search-box">
+                <input type="text" id="erTableSearchInput" placeholder="Buscar tablas..." oninput="filterErSidebarTables(this.value)">
+              </div>
+            </div>
+
+            <!-- Accordion List of Tables -->
+            <div class="er-sidebar-list" id="erSidebarTablesList">
+              <!-- Dynamically populated tables & columns -->
+            </div>
+          </div>
+
+          <!-- PANE 2: SQL DDL Code View with Syntax Highlighting and Line Numbers -->
+          <div class="er-sidebar-tab-pane" id="paneSidebarCode">
+            <div class="sidebar-sql-header">
+              <div class="sidebar-sql-title-info">
+                <span class="sidebar-sql-title">Sentencias DDL Generadas</span>
+                <span class="sidebar-sql-subtitle">Recrea las tablas y llaves foráneas</span>
+              </div>
+              <div class="sidebar-sql-btn-wrap">
+                <span id="sidebarCopySuccessBadge" class="copy-success-badge" style="display: none;">¡Copiado! ✓</span>
+                <button type="button" class="btn-primary-sm" onclick="copySidebarSqlCode()">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  Copiar SQL
+                </button>
+              </div>
+            </div>
+
+            <div class="sidebar-sql-editor-container">
+              <div class="sidebar-sql-line-numbers" id="sidebarSqlLineNumbers">
+                <div>1</div>
+              </div>
+              <div class="sidebar-sql-code-area" id="sidebarSqlCodeArea">
+                <pre class="sidebar-sql-code-content" id="sidebarSqlCodeDisplay">-- Cargando código DDL...</pre>
+              </div>
+            </div>
+          </div>
+          <!-- Draggable resizer edge on the right of the sidebar -->
+          <div class="er-sidebar-resizer" id="erSidebarResizer" title="Arrastrar para redimensionar ancho de la barra lateral"></div>
+        </aside>
+
+        <!-- Expand indicator tab shown when the sidebar is collapsed/hidden (vertical orientation "a lo alto") -->
+        <button type="button" class="er-sidebar-expand-indicator" id="erSidebarExpandIndicator" onclick="toggleErSidebar(true)" title="Expandir panel (Tablas y Código)">
+          <svg class="expand-indicator-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          <span class="expand-indicator-text">Tablas / Código</span>
+        </button>
+
+        <!-- Canvas view wrapper (placed after sidebar so sidebar is on the left) -->
+        <div class="er-view-wrapper" id="erContainer">
+          <div class="er-toolbar">
+            <button class="er-btn" onclick="fetchAndRenderERDiagram()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              Actualizar Diagrama ER
+            </button>
+            <button class="er-btn" onclick="resetCardPositions()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>
+              Reorganizar Tablas
+            </button>
+            <button class="er-btn" id="btnToggleSqlCode" onclick="showSidebarTab('code')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              Código SQL (DDL)
+            </button>
+
+            <!-- Zoom & Pan Controls -->
+            <div class="er-zoom-controls">
+              <button class="er-btn er-zoom-btn" onclick="erZoomIn()" title="Acercar (Zoom In)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              </button>
+              <span class="er-zoom-badge" id="erZoomLevel" onclick="resetErView()" title="Haga clic para restablecer al 100%">100%</span>
+              <button class="er-btn er-zoom-btn" onclick="erZoomOut()" title="Alejar (Zoom Out)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              </button>
+              <button class="er-btn er-zoom-btn" onclick="resetErView()" title="Restablecer vista a 100%">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              </button>
+            </div>
+
+            <!-- Toggle Sidebar Button on toolbar -->
+            <button class="er-btn er-sidebar-toggle-btn" id="btnToggleErSidebar" onclick="showSidebarTab('tables')" title="Mostrar/Ocultar Editor de Tablas">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              <span>Editor de Tablas</span>
+            </button>
+          </div>
+
+          <!-- Canvas Surface (scales and pans) -->
+          <div class="er-canvas-surface" id="erCanvasSurface">
+            <!-- SVG overlay for relationship lines, preview line, and arrows -->
+            <svg class="er-canvas-svg" id="erSvg" viewBox="-5000 -5000 10000 10000">
+              <defs>
+                <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#64748b" />
+                </marker>
+                <marker id="arrow-preview" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#2563eb" />
+                </marker>
+              </defs>
+              <path id="erDragPreviewLine" d="" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-dasharray="4,4" marker-end="url(#arrow-preview)" style="display: none; pointer-events: none;" />
+            </svg>
+
+            <!-- Container where table cards are placed -->
+            <div id="erTablesContainer"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: CRUD View -->
+    <section id="viewCrud" class="view-content">
+      <div class="query-toolbar">
+        <label style="font-size: 13px; font-weight: 600; color: #334155;">Seleccionar Tabla:</label>
+        <div class="quick-tables-container" id="crudTablesContainer">
+          <div class="quick-tables-group" id="crudQuickTables">
+            <button class="quick-table-btn active" onclick="loadCrudTable('TRABAJADOR')">TRABAJADOR</button>
+            <button class="quick-table-btn" onclick="loadCrudTable('EDIFICIO')">EDIFICIO</button>
+            <button class="quick-table-btn" onclick="loadCrudTable('ASIGNACION')">ASIGNACION</button>
+          </div>
+          <button class="tables-expand-btn" id="crudTablesToggle" onclick="toggleTablesExpand('crud')" style="display: none;">
+            <span class="expand-label">+ Más</span>
+            <svg class="expand-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+        </div>
+        <button class="btn-new-record" onclick="openCrudModal('create', currentCrudTable)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Nuevo Registro
+        </button>
+      </div>
+
+      <div class="table-card">
+        <div class="table-card-header">
+          <svg class="table-icon-svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 3.79 2 6v12c0 2.21 4.48 4 10 4s10-1.79 10-4V6c0-2.21-4.48-4-10-4zm0 2c4.42 0 8 1.34 8 2s-3.58 2-8 2-8-1.34-8-2 3.58-2 8-2zm8 6c0 .66-3.58 2-8 2s-8-1.34-8-2V8.41C5.64 9.38 8.65 10 12 10s6.36-.62 8-1.59V10zm0 6c0 .66-3.58 2-8 2s-8-1.34-8-2v-1.59c1.64.97 4.65 1.59 8 1.59s6.36-.62 8-1.59V16z"/></svg>
+          <span class="table-card-title" id="crudTableTitleDisplay">Gestión CRUD: TRABAJADOR</span>
+        </div>
+        <div class="data-table-container">
+          <table class="data-table" id="crudDataTable">
+            <thead id="crudTableHead"></thead>
+            <tbody id="crudTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- AUTHENTICATION MODAL (Requirement: Solicitar el usuario y contraseña para validar la conexión en una ventana de autenticación antes de entrar por completo) -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-header-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.66 0 3 1.34 3 3 0 .78-.3 1.48-.79 2H15c.55 0 1 .45 1 1v4c0 .55-.45 1-1 1H9c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h.79c-.49-.52-.79-1.22-.79-2 0-1.66 1.34-3 3-3zm0 2c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/></svg>
+        </div>
+        <div style="flex: 1;">
+          <h2 class="modal-title">Autenticación de Base de Datos</h2>
+          <p class="modal-subtitle">Valide sus credenciales de conexión para continuar</p>
+        </div>
+        <button type="button" class="modal-close-btn" id="authModalCloseBtn" onclick="closeAuthModal()" style="display: none;" title="Cerrar ventana">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="engine-toggle-group">
+          <button type="button" class="engine-btn active" id="btnEngineSqlite" onclick="setAuthEngine('sqlite')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+            SQLite Embebido
+          </button>
+          <button type="button" class="engine-btn" id="btnEngineMysql" onclick="setAuthEngine('mysql')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+            MySQL / MariaDB
+          </button>
+        </div>
+
+        <div id="mysqlFields" style="display: none;">
+          <div style="display: flex; gap: 10px;">
+            <div class="form-group" style="flex: 2;">
+              <label class="form-label">Servidor / Host</label>
+              <input type="text" id="authHost" class="form-input" value="localhost">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Puerto</label>
+              <input type="number" id="authPort" class="form-input" value="3306">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Base de Datos</label>
+            <input type="text" id="authDb" class="form-input" value="empresa">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Usuario</label>
+          <input type="text" id="authUser" class="form-input" placeholder="Ej. admin o root">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Contraseña</label>
+          <input type="password" id="authPass" class="form-input" placeholder="••••••••">
+        </div>
+
+        <div class="modal-alert" id="authAlert"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-primary" id="btnAuthSubmit" onclick="submitAuthentication()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          Conectar y Validar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CRUD MODAL (Create / Edit Record) -->
+  <div class="modal-overlay hidden" id="crudModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-header-icon">
+          <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+        </div>
+        <div>
+          <h2 class="modal-title" id="crudModalTitle">Registro</h2>
+          <p class="modal-subtitle" id="crudModalSubtitle">Gestión de campos de la tabla</p>
+        </div>
+      </div>
+
+      <div class="modal-body" id="crudModalFormBody">
+        <!-- Generated inputs -->
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeCrudModal()">Cancelar</button>
+        <button type="button" class="btn-primary" onclick="saveCrudRecord()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SQL CODE (DDL) MODAL (View & Copy SQL) -->
+  <div class="modal-overlay hidden" id="sqlCodeModal">
+    <div class="modal-card" style="max-width: 760px; width: 92%;">
+      <div class="modal-header">
+        <div class="modal-header-icon" style="background: rgba(37, 99, 235, 0.1); color: #2563eb;">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </div>
+        <div>
+          <h2 class="modal-title">Código SQL de Creación (DDL)</h2>
+          <p class="modal-subtitle">Sentencias DDL para recrear las tablas y relaciones del diagrama</p>
+        </div>
+        <button type="button" class="er-sidebar-close-btn" onclick="closeSqlCodeModal()" style="margin-left: auto;">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding: 16px;">
+        <div class="sql-ddl-code-wrapper">
+          <pre id="sqlDdlCodeDisplay" class="sql-ddl-code">-- Cargando código SQL...</pre>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <span id="copySqlSuccessBadge" class="copy-success-badge" style="display: none;">¡Copiado al portapapeles! ✓</span>
+        <div style="margin-left: auto; display: flex; gap: 8px;">
+          <button type="button" class="btn-secondary" onclick="closeSqlCodeModal()">Cerrar</button>
+          <button type="button" class="btn-primary" onclick="copySqlDdlCode()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copiar Código SQL
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Dark Mode Toggle Button (Icon only in bottom right corner) -->
+  <button class="theme-floating-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Alternar entre modo claro y modo oscuro">
+    <span class="theme-icon" id="themeIcon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </span>
+  </button>
+
+  <!-- App logic -->
+  <script src="app.js"></script>
+</body>
+</html>
